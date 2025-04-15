@@ -38,44 +38,16 @@ function drawTextWithFallback(
     size: number
 ) {
     let x = xStart;
-    let buffer = '';
-    let currentFont: FontEntry | null = null;
+    const char = text[0]
 
-    for (const char of text) {
-        const font = fonts.find(f => f.supports(char));
-        if (!font) {
-            console.warn(`⚠️ No font for: ${char}`);
-            continue;
-        }
-
-        if (font !== currentFont) {
-            // flush old buffer
-            if (buffer && currentFont) {
-                page.drawText(buffer, {
-                    x,
-                    y,
-                    size,
-                    font: currentFont.font,
-                });
-                x += currentFont.font.widthOfTextAtSize(buffer, size);
-            }
-            // switch font
-            currentFont = font;
-            buffer = char;
-        } else {
-            buffer += char;
-        }
+    const font = fonts.find(f => f.supports(char)) || fonts.find(f => f.name === "NotoSans-Regular.ttf");
+    if (!font) {
+        console.warn(`⚠️ No font for: ${char}`);
+        return;
     }
 
-    // flush remaining
-    if (buffer && currentFont) {
-        page.drawText(buffer, {
-            x,
-            y,
-            size,
-            font: currentFont.font,
-        });
-    }
+    page.drawText(text, { x, y, size, font: font.font });
+
 }
 
 export async function create_withFontLoader() {
@@ -91,16 +63,16 @@ export async function create_withFontLoader() {
 
     const page = hasExistingPdf ? pdfDoc.getPages()[0] : pdfDoc.addPage([595, 842]);
 
-    const text = 'Hello, world! (Latin) \n Γειά σου Κόσμε (Greek) \n 你好世界 (Chinese) \n こんにちは世界 (Japanese) \n 한국 사람 (Korean) \n مرحبا بالعالم (Arabic)';
+    const text = ['Hello, world!', 'Γειά σου Κόσμε', '你好世界', 'こんにちは世界', '한국 사람', 'Зарегистр' ,'وب وغيرها. مثال', 'дe oпште дост', 'učestvuje u kulturnom životu zajednice, da uživ'];
 
-    drawTextWithFallback(
-        page,
-        text,
-        fonts,
-        50,
-        650,
-        8
-    );
+    let y = 650
+    for (const sub of text) {
+        console.time()
+        drawTextWithFallback(page,sub,fonts,50,y,8);
+        console.timeEnd();
+        y -= 30
+    }
+
 
     const output = await pdfDoc.save();
     fs.writeFileSync('./pdf/output-loader.pdf', output);
